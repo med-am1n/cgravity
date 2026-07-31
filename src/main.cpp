@@ -25,9 +25,9 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res);
 GLFWwindow *startGLFW(float width, float hight, const char *title);
 
-float posY = 0.5f;
+float posY = 1.0f;
 float velocity = 0.0f;
-const float gravity = -9.81f; // meters/sec²
+const float gravity = 9.81f; // meters/sec²
 float lastTime = glfwGetTime();
 
 int main()
@@ -35,18 +35,15 @@ int main()
 
     std::cout << "Hello, World!" << std::endl;
 
-
     GLFWwindow *window = startGLFW(SCR_WIDTH, SCR_HEIGHT, "CGravity");
-    
+
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    
-    
+
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-
     std::vector<float> circle = CreateCircle(0.0f, 0.0f, 0.5f, 100);
-    
+
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -61,7 +58,6 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
     glEnableVertexAttribArray(0);
 
-    float posY = 0.0f;
     glEnable(GL_DEPTH_TEST);
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -90,11 +86,19 @@ int main()
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
-        velocity += gravity * deltaTime;
+        velocity -= gravity * deltaTime;
         posY += velocity * deltaTime;
+
+        if (posY < -1.0f)
+        {
+            posY = -1.0f;               // Prevent sinking below the ground
+            velocity = -velocity * 0.8f; // Reverse direction (0.8 = lose 20% energy)
+        }
+        
+        float angle = 45.0f;
+
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, posY, 0.0f));
-        float angle = 45.0f;
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
         ourShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLE_FAN, 0, circle.size() / 3);
@@ -128,10 +132,9 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-
 std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res)
 {
-    
+
     std::vector<float> vertices;
 
     // Center vertex
@@ -151,12 +154,12 @@ std::vector<float> CreateCircle(float centerX, float centerY, float radius, int 
     return vertices;
 }
 
+GLFWwindow *startGLFW(float width, float hight, const char *title)
+{
 
-GLFWwindow *startGLFW(float width, float hight, const char *title){
-
-
-    if(!glfwInit()){
-        std::cerr<<"Failed to initialize glfw"<<std::endl;
+    if (!glfwInit())
+    {
+        std::cerr << "Failed to initialize glfw" << std::endl;
         return nullptr;
     }
 
@@ -177,7 +180,6 @@ GLFWwindow *startGLFW(float width, float hight, const char *title){
     }
 
     glfwMakeContextCurrent(window);
-
 
     // initialize GLAD
     if (!gladLoadGL(glfwGetProcAddress))
