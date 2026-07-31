@@ -30,6 +30,31 @@ float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
 float lastTime = glfwGetTime();
 
+
+class Object
+{
+public:
+    std::vector<float> position;
+    std::vector<float> vertices;
+    float velocity;
+    Object(std::vector<float> position, std::vector<float> vertices, float velocity)
+        {
+            this->position = position;
+            this->vertices = vertices;
+            this->velocity = velocity;
+        }
+
+    void Draw(Shader &ourShader)
+    {   
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(position[0], position[1], position[1]));
+        // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+        ourShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size() / 3);
+    }
+};
+
+
 int main()
 {
 
@@ -42,7 +67,9 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<float> circle = CreateCircle(0.0f, 0.0f, 0.5f, 100);
+    std::vector<float> vertices = CreateCircle(0.0f, 0.0f, 0.25f, 100);
+
+    Object circle1({0.0f, 0.5f, 0.0f}, vertices ,0.0f);
 
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
@@ -51,7 +78,7 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, circle.size() * sizeof(float), circle.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     int stride = 3 * sizeof(float);
     // position attribute
@@ -79,30 +106,9 @@ int main()
         // camera
         glm::mat4 view = camera.GetViewMatrix();
         ourShader.setMat4("view", view);
-        glBindVertexArray(VAO);
-
-
-        float currentTime = glfwGetTime();
-        float deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
-
-        velocity -= gravity * deltaTime;
-        posY += velocity * deltaTime;
-
-        if (posY < -1.0f)
-        {
-            posY = -1.0f;               // Prevent sinking below the ground
-            velocity = -velocity * 0.8f; // Reverse direction (0.8 = lose 20% energy)
-        }
+        glBindVertexArray(VAO);        
         
-        float angle = 45.0f;
-
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, posY, 0.0f));
-        // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-        ourShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, circle.size() / 3);
-
+        circle1.Draw(ourShader);
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
         // Once rendering is complete, buffers are swapped (glfwSwapBuffers) to avoid flickering
@@ -190,3 +196,5 @@ GLFWwindow *startGLFW(float width, float hight, const char *title)
 
     return window;
 }
+
+
