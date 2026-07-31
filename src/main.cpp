@@ -25,7 +25,9 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res);
 GLFWwindow *startGLFW(float width, float hight, const char *title);
 
-float posY = 0.0f;
+float posY = 0.5f;
+float velocity = 0.0f;
+const float gravity = -9.81f; // meters/sec²
 float lastTime = glfwGetTime();
 
 int main()
@@ -88,7 +90,8 @@ int main()
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
-        posY -= 0.2f * deltaTime;
+        velocity += gravity * deltaTime;
+        posY += velocity * deltaTime;
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, posY, 0.0f));
         float angle = 45.0f;
