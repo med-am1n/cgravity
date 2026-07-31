@@ -23,40 +23,19 @@ const unsigned int SCR_HEIGHT = 600;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res);
+GLFWwindow *startGLFW(float width, float hight, const char *title);
 
 int main()
 {
 
     std::cout << "Hello, World!" << std::endl;
 
-    glfwInit();
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "openGl", nullptr, nullptr);
-    if (!window)
-    {
-        std::cout << "Failed to create GLFW window\n";
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-
+    GLFWwindow *window = startGLFW(SCR_WIDTH, SCR_HEIGHT, "CGravity");
+    
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    // initialize GLAD
-    if (!gladLoadGL(glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD\n";
-        return -1;
-    }
+    
+    
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
@@ -78,7 +57,6 @@ int main()
     glEnableVertexAttribArray(0);
 
     glEnable(GL_DEPTH_TEST);
-
     // render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -158,4 +136,42 @@ std::vector<float> CreateCircle(float centerX, float centerY, float radius, int 
     }
 
     return vertices;
+}
+
+
+GLFWwindow *startGLFW(float width, float hight, const char *title){
+
+
+    if(!glfwInit()){
+        std::cerr<<"Failed to initialize glfw"<<std::endl;
+        return nullptr;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, title, nullptr, nullptr);
+    if (!window)
+    {
+        std::cout << "Failed to create GLFW window\n";
+        glfwTerminate();
+        return nullptr;
+    }
+
+    glfwMakeContextCurrent(window);
+
+
+    // initialize GLAD
+    if (!gladLoadGL(glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD\n";
+        return nullptr;
+    }
+
+    return window;
 }
