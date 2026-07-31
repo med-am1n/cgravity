@@ -6,6 +6,9 @@
 #include <stb_image.h>
 #include <filesystem.h>
 
+#include <vector>
+#include <cmath>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -19,13 +22,7 @@ const unsigned int SCR_HEIGHT = 600;
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-float vertices[] = {
-    -0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, -0.5f,
-    0.5f, 0.5f, -0.5f,
-    0.5f, 0.5f, -0.5f,
-    -0.5f, 0.5f, -0.5f,
-    -0.5f, -0.5f, -0.5f};
+std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res);
 
 int main()
 {
@@ -63,6 +60,9 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
+
+    std::vector<float> circle = CreateCircle(0.0f, 0.0f, 0.5f, 100);
+    
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -70,7 +70,7 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, circle.size() * sizeof(float), circle.data(), GL_STATIC_DRAW);
 
     int stride = 3 * sizeof(float);
     // position attribute
@@ -107,7 +107,7 @@ int main()
         float angle = 45.0f;
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
         ourShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, circle.size() / 3);
 
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
@@ -136,4 +136,26 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+}
+
+
+std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res)
+{
+    std::vector<float> vertices;
+
+    // Center vertex
+    vertices.push_back(centerX);
+    vertices.push_back(centerY);
+    vertices.push_back(0.0f);
+
+    for (int i = 0; i <= res; i++)
+    {
+        float angle = 2.0f * M_PI * i / res;
+
+        vertices.push_back(centerX + radius * cos(angle));
+        vertices.push_back(centerY + radius * sin(angle));
+        vertices.push_back(0.0f);
+    }
+
+    return vertices;
 }
