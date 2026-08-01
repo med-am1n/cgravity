@@ -87,18 +87,9 @@ int main()
 
     std::vector<float> vertices1 = CreateCircle(0.0f, 0.0f, 0.25f, 100);
     std::vector<float> vertices2 = CreateCircle(0.0f, 0.0f, 0.10f, 100);
-    // std::vector<float> vertices3 = {
-    //     -0.5f, -0.5f, -0.5f,
-    //     0.5f, -0.5f, -0.5f,
-    //     0.5f,  0.5f, -0.5f,
-    //     0.5f,  0.5f, -0.5f,
-    //     -0.5f,  0.5f, -0.5f,
-    //     -0.5f, -0.5f, -0.5f
-    // };
 
     Object circle1({0.0f, 0.5f, 0.0f}, vertices1, ourShader,0.0f);
     Object circle2({0.0f, -0.5f, 0.0f}, vertices2, ourShader ,0.0f);
-    // Object square({-1.0f, -0.5f, 0.0f}, vertices3, ourShader ,0.0f);
 
     glEnable(GL_DEPTH_TEST);
     // render loop
@@ -121,7 +112,6 @@ int main()
         
         circle1.Draw(view, projection);
         circle2.Draw(view, projection);
-        // square.Draw(view, projection);
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
         // Once rendering is complete, buffers are swapped (glfwSwapBuffers) to avoid flickering
