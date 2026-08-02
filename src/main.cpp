@@ -30,48 +30,30 @@ float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
 float lastTime = glfwGetTime();
 
+
 class Object
 {
 public:
     std::vector<float> position;
     std::vector<float> vertices;
-    Shader shader;
     float velocity;
-    unsigned int VBO, VAO;
-        Object(const std::vector<float>& position_,
-           const std::vector<float>& vertices_,
-           const Shader& shader_,
-           float velocity_)
-        : position(position_), vertices(vertices_), shader(shader_), velocity(velocity_)
-    {
+    Object(std::vector<float> position, std::vector<float> vertices, float velocity)
+        {
+            this->position = position;
+            this->vertices = vertices;
+            this->velocity = velocity;
+        }
 
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-        int stride = 3 * sizeof(float);
-        // position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
-        glEnableVertexAttribArray(0);
-    }
-
-    void Draw(const glm::mat4& view, const glm::mat4& projection)
-    {
-        shader.use();
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
-        glBindVertexArray(VAO);
+    void Draw(Shader &ourShader)
+    {   
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(position[0], position[1], position[1]));
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-        shader.setMat4("model", model);
+        ourShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size() / 3);
     }
 };
+
 
 int main()
 {
@@ -85,11 +67,23 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<float> vertices1 = CreateCircle(0.0f, 0.0f, 0.25f, 100);
-    std::vector<float> vertices2 = CreateCircle(0.0f, 0.0f, 0.10f, 100);
+    std::vector<float> vertices = CreateCircle(0.0f, 0.0f, 0.25f, 100);
 
-    Object circle1({0.0f, 0.5f, 0.0f}, vertices1, ourShader,0.0f);
-    Object circle2({0.0f, -0.5f, 0.0f}, vertices2, ourShader ,0.0f);
+    Object circle1({0.0f, 0.5f, 0.0f}, vertices ,0.0f);
+
+    unsigned int VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+    int stride = 3 * sizeof(float);
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glEnableVertexAttribArray(0);
 
     glEnable(GL_DEPTH_TEST);
     // render loop
@@ -104,14 +98,17 @@ int main()
         // the entire color buffer will be filled with the color asconfigured by glClearColor.
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+        ourShader.use();
         // create transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+        ourShader.setMat4("projection", projection);
         // camera
         glm::mat4 view = camera.GetViewMatrix();
+        ourShader.setMat4("view", view);
+        glBindVertexArray(VAO);        
         
-        circle1.Draw(view, projection);
-        circle2.Draw(view, projection);
+        circle1.Draw(ourShader);
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
         // Once rendering is complete, buffers are swapped (glfwSwapBuffers) to avoid flickering
@@ -199,3 +196,5 @@ GLFWwindow *startGLFW(float width, float hight, const char *title)
 
     return window;
 }
+
+
