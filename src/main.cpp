@@ -37,13 +37,14 @@ public:
     inline static unsigned int VBO, VAO;
     std::vector<float> position;
     std::vector<float> velocity;
-    float radius = 0.25f;
+    float radius;
     float lastTime = glfwGetTime();
     
-    Object(std::vector<float> position, std::vector<float> velocity)
+    Object(std::vector<float> position, std::vector<float> velocity, float radius)
         {
             this->position = position;
             this->velocity = velocity;
+            this->radius = radius;
         }
 
     void accelerate (float x, float y){
@@ -68,8 +69,10 @@ public:
     void Draw(Shader &shader)
     {   
         glBindVertexArray(VAO);
+        float scaleVal = radius / 0.25f;
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(position[0], position[1], 0));
+        model = glm::scale(model, glm::vec3(scaleVal, scaleVal, 0));
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size() / 3);
@@ -105,8 +108,8 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<Object> objects = { Object({0.0f, 0.75f, 0.0f}, {0.0f, 0.0f}),
-                                    Object({0.75f, 0.5f, 0.0f}, {0.0f, 0.0f})
+    std::vector<Object> objects = { Object({0.0f, 0.75f, 0.0f}, {0.0f, 0.0f}, 0.25f),
+                                    Object({0.75f, 0.5f, 0.0f}, {0.0f, 0.0f}, 0.10f)
                                 };
 
     Object::setupMesh();
