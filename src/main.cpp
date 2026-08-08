@@ -87,15 +87,16 @@ void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
 class Object
 {
 public:
-    inline static std::vector<float> vertices = CreateCircle(0.0f, 0.0f, 0.25f, 100);
-    inline static unsigned int VBO, VAO;
-    glm::vec2 position;
-    glm::vec2 velocity;
+    inline static std::vector<float> vertices;
+    inline static std::vector<unsigned int> indices;
+    inline static unsigned int VBO, VAO, EBO;
+    glm::vec3 position;
+    glm::vec3 velocity;
     float radius;
     float mass;
     float lastTime = glfwGetTime();
 
-    Object(glm::vec2 position, glm::vec2 velocity, float radius, float mass)
+    Object(glm::vec3 position, glm::vec3 velocity, float radius, float mass)
     {
         this->position = position;
         this->velocity = velocity;
@@ -103,36 +104,24 @@ public:
         this->mass = mass;
     }
 
-    void accelerate(glm::vec2 acceleration, float deltaTime)
+    void accelerate(glm::vec3 acceleration, float deltaTime)
     {
-
         velocity += acceleration * deltaTime;
-
         position += velocity * deltaTime;
 
         float bounceEff = 0.8f;
 
-        if (position.y - radius < -1.0f)
-        {
-            position.y = -1.0f + radius;
-            velocity.y = -velocity.y * bounceEff;
-        }
-        else if (position.y + radius > 1.0f)
-        {
-            position.y = 1.0f - radius;
-            velocity.y = -velocity.y * bounceEff;
-        }
+        // X-axis bounds
+        if (position.x - radius < -1.0f) { position.x = -1.0f + radius; velocity.x = -velocity.x * bounceEff; }
+        else if (position.x + radius > 1.0f) { position.x = 1.0f - radius; velocity.x = -velocity.x * bounceEff; }
 
-        if (position.x - radius < -1.0f)
-        {
-            position.x = -1.0f + radius;
-            velocity.x = -velocity.x * bounceEff;
-        }
-        else if (position.x + radius > 1.0f)
-        {
-            position.x = 1.0f - radius;
-            velocity.x = -velocity.x * bounceEff;
-        }
+        // Y-axis bounds
+        if (position.y - radius < -1.0f) { position.y = -1.0f + radius; velocity.y = -velocity.y * bounceEff; }
+        else if (position.y + radius > 1.0f) { position.y = 1.0f - radius; velocity.y = -velocity.y * bounceEff; }
+
+        // Z-axis bounds 
+        if (position.z - radius < -1.0f) { position.z = -1.0f + radius; velocity.z = -velocity.z * bounceEff; }
+        else if (position.z + radius > 1.0f) { position.z = 1.0f - radius; velocity.z = -velocity.z * bounceEff; }
     };
 
     void Draw(Shader &shader)
@@ -140,11 +129,11 @@ public:
         glBindVertexArray(VAO);
         float scaleVal = radius / 0.25f;
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(position[0], position[1], 0));
-        model = glm::scale(model, glm::vec3(scaleVal, scaleVal, 1.0f));
+        model = glm::translate(model, position);
+        model = glm::scale(model, glm::vec3(scaleVal, scaleVal, scaleVal));
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
         shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size() / 3);
+        glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
 
