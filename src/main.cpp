@@ -104,14 +104,15 @@ public:
     glm::vec3 velocity;
     float radius;
     float mass;
-    float lastTime = glfwGetTime();
+    glm::vec3 color;
 
-    Object(glm::vec3 position, glm::vec3 velocity, float radius, float mass)
+    Object(glm::vec3 position, glm::vec3 velocity, float radius, float mass, glm::vec3 color)
     {
         this->position = position;
         this->velocity = velocity;
         this->radius = radius;
         this->mass = mass;
+        this->color = color;
     }
 
     void accelerate(glm::vec3 acceleration, float deltaTime)
@@ -167,6 +168,7 @@ public:
         model = glm::scale(model, glm::vec3(scaleVal, scaleVal, scaleVal));
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
         shader.setMat4("model", model);
+        shader.setVec3("objectColor", color);
         glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
@@ -259,9 +261,11 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<Object> objects = {
-        Object(glm::vec3(-0.4f, 0.0f, 0.0f), glm::vec3(0.0f, 0.4f, 0.2f), 0.25f, 50.0f),
-        Object(glm::vec3(0.4f, 0.0f, 0.0f), glm::vec3(0.0f, -0.4f, -0.2f), 0.10f, 10.0f)};
+std::vector<Object> objects = {
+    Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.25f, 200.0f, glm::vec3(1.0f, 0.85f, 0.2f)),
+    Object(glm::vec3(0.4f, 0.0f, 0.0f), glm::vec3(0.0f, -0.6f, -0.3f), 0.10f, 15.0f, glm::vec3(0.0f, 0.9f, 0.8f)),
+    Object(glm::vec3(-0.5f, 0.4f, 0.1f), glm::vec3(0.4f, 0.3f, 0.2f), 0.12f, 25.0f, glm::vec3(0.85f, 0.25f, 0.2f))
+};
 
     Object::setupMesh();
 

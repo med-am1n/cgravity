@@ -7,7 +7,8 @@ in vec3 FragPos;
 
 vec3 lightPos = vec3(2.0, 4.0, 5.0);   
 vec3 lightColor = vec3(1.0, 1.0, 0.95); 
-vec3 objectColor = vec3(0.2, 0.6, 0.9); 
+
+uniform vec3 objectColor; 
 
 void main()
 {
