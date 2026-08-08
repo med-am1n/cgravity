@@ -29,7 +29,6 @@ float posY = 1.0f;
 float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
 
-
 class Object
 {
 public:
@@ -39,35 +38,46 @@ public:
     std::vector<float> velocity;
     float radius;
     float lastTime = glfwGetTime();
-    
-    Object(std::vector<float> position, std::vector<float> velocity, float radius)
-        {
-            this->position = position;
-            this->velocity = velocity;
-            this->radius = radius;
-        }
 
-    void accelerate (float x, float y){
+    Object(std::vector<float> position, std::vector<float> velocity, float radius)
+    {
+        this->position = position;
+        this->velocity = velocity;
+        this->radius = radius;
+    }
+
+    void accelerate(float x, float y)
+    {
         float currentTime = glfwGetTime();
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
-        this->velocity[0]+= deltaTime*x;
-        this->velocity[1]+= deltaTime*y;
+        this->velocity[0] += deltaTime * x;
+        this->velocity[1] += deltaTime * y;
 
-        this->position[0]+= deltaTime*this->velocity[0];
-        this->position[1]+= deltaTime*this->velocity[1];
+        this->position[0] += deltaTime * this->velocity[0];
+        this->position[1] += deltaTime * this->velocity[1];
 
-        if (position[1] - radius< -1.0f)
+
+        if (position[1] - radius < -1.0f)
         {
-            position[1] = -1.0f + radius;               // Prevent sinking below the ground
-            velocity[1] = -velocity[1] * 0.8f; // Reverse direction (0.8 = lose 20% energy)
+            position[1] = -1.0f + radius;      // Prevent sinking below the ground
+            velocity[1] = -velocity[1] * 0.8; // Reverse direction (0.8 = lose 20% energy)
         }
-        
+        if (position[0] - radius < -1.0f)
+        {
+            position[0] = -1.0f + radius;      // Snap back inside the left edge
+            velocity[0] = -velocity[0]; 
+        }
+        else if (position[0] + radius > 1.0f)
+        {
+            position[0] = 1.0f - radius;       // Snap back inside the right edge
+            velocity[0] = -velocity[0]; 
+        }
     };
 
     void Draw(Shader &shader)
-    {   
+    {
         glBindVertexArray(VAO);
         float scaleVal = radius / 0.25f;
         glm::mat4 model = glm::mat4(1.0f);
@@ -79,7 +89,8 @@ public:
         glBindVertexArray(0);
     }
 
-    static void setupMesh(){
+    static void setupMesh()
+    {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
@@ -95,7 +106,6 @@ public:
     }
 };
 
-
 int main()
 {
 
@@ -108,9 +118,8 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<Object> objects = { Object({0.0f, 0.75f, 0.0f}, {0.0f, 0.0f}, 0.25f),
-                                    Object({0.75f, 0.5f, 0.0f}, {0.0f, 0.0f}, 0.10f)
-                                };
+    std::vector<Object> objects = {Object({0.0f, 0.75f, 0.0f}, {0.0f, 0.0f}, 0.25f),
+                                   Object({0.75f, 0.5f, 0.0f}, {0.0f, 0.0f}, 0.10f)};
 
     Object::setupMesh();
 
@@ -134,10 +143,11 @@ int main()
         ourShader.setMat4("projection", projection);
         // camera
         glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("view", view);       
-        
-        for(auto i {objects.size()}; i-- > 0;){
-            objects[i].accelerate(0, -gravity);
+        ourShader.setMat4("view", view);
+
+        for (auto i{objects.size()}; i-- > 0;)
+        {
+            objects[i].accelerate(-3, -gravity);
             objects[i].Draw(ourShader);
         }
         // Double buffering:
@@ -227,5 +237,3 @@ GLFWwindow *startGLFW(float width, float hight, const char *title)
 
     return window;
 }
-
-
