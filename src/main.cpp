@@ -58,9 +58,9 @@ public:
         this->position[0]+= deltaTime*this->velocity[0];
         this->position[1]+= deltaTime*this->velocity[1];
 
-        if (position[1] < -1.0f)
+        if (position[1] - radius< -1.0f)
         {
-            position[1] = -1.0f;               // Prevent sinking below the ground
+            position[1] = -1.0f + radius;               // Prevent sinking below the ground
             velocity[1] = -velocity[1] * 0.8f; // Reverse direction (0.8 = lose 20% energy)
         }
         
