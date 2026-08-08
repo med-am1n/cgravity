@@ -154,7 +154,7 @@ public:
     }
 };
 
-std::vector<glm::vec2> calculateGravity(std::vector<Object> &objects)
+std::vector<glm::vec3> calculateGravity(const std::vector<Object>& objects)
 {
     // ============================================================================
     // PHYSICS DECOUPLING (SIMULTANEOUS STATE UPDATE)
@@ -169,13 +169,13 @@ std::vector<glm::vec2> calculateGravity(std::vector<Object> &objects)
     // Object B would calculate its gravity using Object A's *new* position instead
     // of its *current* position for this frame, violating laws of physics symmetry.
     // ============================================================================
-    std::vector<glm::vec2> accelerations(objects.size(), glm::vec2(0.0f));
+    std::vector<glm::vec3> accelerations(objects.size(), glm::vec3(0.0f));
 
     for (size_t i = 0; i < objects.size(); ++i)
     {
         for (size_t j = i + 1; j < objects.size(); ++j)
         {
-            glm::vec2 direction = objects[j].position - objects[i].position;
+            glm::vec3 direction = objects[j].position - objects[i].position;
             float distance = glm::length(direction);
 
             // Avoid division by zero when objects overlap closely
@@ -185,7 +185,7 @@ std::vector<glm::vec2> calculateGravity(std::vector<Object> &objects)
 
             if (distance > 0.001f)
             {
-                glm::vec2 normDir = direction / distance;
+                glm::vec3 normDir = direction / distance;
                 
                 // Newton's law: F = (G * m1 * m2) / r^2
                 float forceMagnitude = (G * objects[i].mass * objects[j].mass) / (distance * distance);
