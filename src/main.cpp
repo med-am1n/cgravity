@@ -46,69 +46,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-// Generates vertices and indices for a 3D UV Sphere
+
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
-                  std::vector<float> &vertices, std::vector<unsigned int> &indices)
-{
-    vertices.clear();
-    indices.clear();
-
-    float x, y, z, xy; // vertex position
-    float sectorStep = 2 * M_PI / sectors;
-    float stackStep = M_PI / stacks;
-    float sectorAngle, stackAngle;
-
-    for (unsigned int i = 0; i <= stacks; ++i)
-    {
-        stackAngle = M_PI / 2 - i * stackStep; // starting from pi/2 to -pi/2
-        xy = radius * cosf(stackAngle);        // r * cos(u)
-        z = radius * sinf(stackAngle);         // r * sin(u)
-
-        // add (sectors+1) vertices per stack
-        for (unsigned int j = 0; j <= sectors; ++j)
-        {
-            sectorAngle = j * sectorStep; // starting from 0 to 2pi
-
-            // vertex position (x, y, z)
-            x = xy * cosf(sectorAngle); // r * cos(u) * cos(v)
-            y = xy * sinf(sectorAngle); // r * cos(u) * sin(v)
-            vertices.push_back(x);
-            vertices.push_back(y);
-            vertices.push_back(z);
-
-            // Normals (Normal = Position / Radius)
-            vertices.push_back(x / radius);
-            vertices.push_back(y / radius);
-            vertices.push_back(z / radius);
-        }
-    }
-
-    // generate CCW index list of triangles
-    unsigned int k1, k2;
-    for (unsigned int i = 0; i < stacks; ++i)
-    {
-        k1 = i * (sectors + 1); // beginning of current stack
-        k2 = k1 + sectors + 1;  // beginning of next stack
-
-        for (unsigned int j = 0; j < sectors; ++j, ++k1, ++k2)
-        {
-            // 2 triangles per sector excluding first and last stacks
-            if (i != 0)
-            {
-                indices.push_back(k1);
-                indices.push_back(k2);
-                indices.push_back(k1 + 1);
-            }
-
-            if (i != (stacks - 1))
-            {
-                indices.push_back(k1 + 1);
-                indices.push_back(k2);
-                indices.push_back(k2 + 1);
-            }
-        }
-    }
-}
+                  std::vector<float> &vertices, std::vector<unsigned int> &indices);
+std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects);
+void resolveCollisions(std::vector<Object> &objects);
 
 class Object
 {
@@ -218,93 +160,6 @@ public:
         glEnableVertexAttribArray(1);
     }
 };
-
-std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects)
-{
-    // ============================================================================
-    // PHYSICS DECOUPLING (SIMULTANEOUS STATE UPDATE)
-    // ============================================================================
-    // We separate the calculation of gravity from the application of acceleration.
-    //
-    // 1. "calculateGravity" reads the current positions of all objects to find forces.
-    // 2. We store these net accelerations in a temporary vector array.
-    // 3. Only AFTER all forces are known do we loop through and update positions.
-    //
-    // This prevents a "mutation lag" bug: if we updated Object A's position instantly,
-    // Object B would calculate its gravity using Object A's *new* position instead
-    // of its *current* position for this frame, violating laws of physics symmetry.
-    // ============================================================================
-    std::vector<glm::vec3> accelerations(objects.size(), glm::vec3(0.0f));
-
-    for (size_t i = 0; i < objects.size(); ++i)
-    {
-        for (size_t j = i + 1; j < objects.size(); ++j)
-        {
-            glm::vec3 direction = objects[j].position - objects[i].position;
-            float distance = glm::length(direction);
-
-            // Avoid division by zero when objects overlap closely
-            float minDistance = objects[i].radius + objects[j].radius;
-            if (distance < minDistance)
-                distance = minDistance;
-
-            if (distance > 0.001f)
-            {
-                glm::vec3 normDir = direction / distance;
-
-                // Newton's law: F = (G * m1 * m2) / r^2
-                float forceMagnitude = (G * objects[i].mass * objects[j].mass) / (distance * distance);
-
-                // Newton's Second Law: a = F / m
-                accelerations[i] += normDir * (forceMagnitude / objects[i].mass);
-                accelerations[j] -= normDir * (forceMagnitude / objects[j].mass);
-            }
-        }
-    }
-
-    return accelerations;
-}
-
-void resolveCollisions(std::vector<Object> &objects)
-{
-    float restitution = 0.8f;
-
-    for (size_t i = 0; i < objects.size(); ++i)
-    {
-        for (size_t j = i + 1; j < objects.size(); ++j)
-        {
-            glm::vec3 delta = objects[j].position - objects[i].position;
-            float distance = glm::length(delta);
-            float minDistance = objects[i].radius + objects[j].radius;
-
-            if (distance < minDistance)
-            {
-                // Prevent division by zero
-                glm::vec3 normal = (distance > 0.0001f) ? delta / distance : glm::vec3(1.0f, 0.0f, 0.0f);
-
-                float overlap = minDistance - distance;
-                float totalInverseMass = (1.0f / objects[i].mass) + (1.0f / objects[j].mass);
-
-                glm::vec3 separationVector = normal * (overlap / totalInverseMass);
-
-                objects[i].position -= separationVector * (1.0f / objects[i].mass);
-                objects[j].position += separationVector * (1.0f / objects[j].mass);
-
-                glm::vec3 relativeVelocity = objects[i].velocity - objects[j].velocity;
-                float velAlongNormal = glm::dot(relativeVelocity, normal);
-                if (velAlongNormal > 0.0f)
-                {
-                    float impulseScalar = -(1.0f + restitution) * velAlongNormal;
-                    impulseScalar /= totalInverseMass;
-
-                    glm::vec3 impulse = impulseScalar * normal;
-                    objects[i].velocity += impulse / objects[i].mass;
-                    objects[j].velocity -= impulse / objects[j].mass;
-                }
-            }
-        }
-    }
-}
 
 int main()
 {
@@ -455,6 +310,159 @@ std::vector<float> CreateCircle(float centerX, float centerY, float radius, int 
     }
 
     return vertices;
+}
+
+
+// Generates vertices and indices for a 3D UV Sphere
+void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
+                  std::vector<float> &vertices, std::vector<unsigned int> &indices)
+{
+    vertices.clear();
+    indices.clear();
+
+    float x, y, z, xy; // vertex position
+    float sectorStep = 2 * M_PI / sectors;
+    float stackStep = M_PI / stacks;
+    float sectorAngle, stackAngle;
+
+    for (unsigned int i = 0; i <= stacks; ++i)
+    {
+        stackAngle = M_PI / 2 - i * stackStep; // starting from pi/2 to -pi/2
+        xy = radius * cosf(stackAngle);        // r * cos(u)
+        z = radius * sinf(stackAngle);         // r * sin(u)
+
+        // add (sectors+1) vertices per stack
+        for (unsigned int j = 0; j <= sectors; ++j)
+        {
+            sectorAngle = j * sectorStep; // starting from 0 to 2pi
+
+            // vertex position (x, y, z)
+            x = xy * cosf(sectorAngle); // r * cos(u) * cos(v)
+            y = xy * sinf(sectorAngle); // r * cos(u) * sin(v)
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+
+            // Normals (Normal = Position / Radius)
+            vertices.push_back(x / radius);
+            vertices.push_back(y / radius);
+            vertices.push_back(z / radius);
+        }
+    }
+
+    // generate CCW index list of triangles
+    unsigned int k1, k2;
+    for (unsigned int i = 0; i < stacks; ++i)
+    {
+        k1 = i * (sectors + 1); // beginning of current stack
+        k2 = k1 + sectors + 1;  // beginning of next stack
+
+        for (unsigned int j = 0; j < sectors; ++j, ++k1, ++k2)
+        {
+            // 2 triangles per sector excluding first and last stacks
+            if (i != 0)
+            {
+                indices.push_back(k1);
+                indices.push_back(k2);
+                indices.push_back(k1 + 1);
+            }
+
+            if (i != (stacks - 1))
+            {
+                indices.push_back(k1 + 1);
+                indices.push_back(k2);
+                indices.push_back(k2 + 1);
+            }
+        }
+    }
+}
+
+
+std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects)
+{
+    // ============================================================================
+    // PHYSICS DECOUPLING (SIMULTANEOUS STATE UPDATE)
+    // ============================================================================
+    // We separate the calculation of gravity from the application of acceleration.
+    //
+    // 1. "calculateGravity" reads the current positions of all objects to find forces.
+    // 2. We store these net accelerations in a temporary vector array.
+    // 3. Only AFTER all forces are known do we loop through and update positions.
+    //
+    // This prevents a "mutation lag" bug: if we updated Object A's position instantly,
+    // Object B would calculate its gravity using Object A's *new* position instead
+    // of its *current* position for this frame, violating laws of physics symmetry.
+    // ============================================================================
+    std::vector<glm::vec3> accelerations(objects.size(), glm::vec3(0.0f));
+
+    for (size_t i = 0; i < objects.size(); ++i)
+    {
+        for (size_t j = i + 1; j < objects.size(); ++j)
+        {
+            glm::vec3 direction = objects[j].position - objects[i].position;
+            float distance = glm::length(direction);
+
+            // Avoid division by zero when objects overlap closely
+            float minDistance = objects[i].radius + objects[j].radius;
+            if (distance < minDistance)
+                distance = minDistance;
+
+            if (distance > 0.001f)
+            {
+                glm::vec3 normDir = direction / distance;
+
+                // Newton's law: F = (G * m1 * m2) / r^2
+                float forceMagnitude = (G * objects[i].mass * objects[j].mass) / (distance * distance);
+
+                // Newton's Second Law: a = F / m
+                accelerations[i] += normDir * (forceMagnitude / objects[i].mass);
+                accelerations[j] -= normDir * (forceMagnitude / objects[j].mass);
+            }
+        }
+    }
+
+    return accelerations;
+}
+
+void resolveCollisions(std::vector<Object> &objects)
+{
+    float restitution = 0.8f;
+
+    for (size_t i = 0; i < objects.size(); ++i)
+    {
+        for (size_t j = i + 1; j < objects.size(); ++j)
+        {
+            glm::vec3 delta = objects[j].position - objects[i].position;
+            float distance = glm::length(delta);
+            float minDistance = objects[i].radius + objects[j].radius;
+
+            if (distance < minDistance)
+            {
+                // Prevent division by zero
+                glm::vec3 normal = (distance > 0.0001f) ? delta / distance : glm::vec3(1.0f, 0.0f, 0.0f);
+
+                float overlap = minDistance - distance;
+                float totalInverseMass = (1.0f / objects[i].mass) + (1.0f / objects[j].mass);
+
+                glm::vec3 separationVector = normal * (overlap / totalInverseMass);
+
+                objects[i].position -= separationVector * (1.0f / objects[i].mass);
+                objects[j].position += separationVector * (1.0f / objects[j].mass);
+
+                glm::vec3 relativeVelocity = objects[i].velocity - objects[j].velocity;
+                float velAlongNormal = glm::dot(relativeVelocity, normal);
+                if (velAlongNormal > 0.0f)
+                {
+                    float impulseScalar = -(1.0f + restitution) * velAlongNormal;
+                    impulseScalar /= totalInverseMass;
+
+                    glm::vec3 impulse = impulseScalar * normal;
+                    objects[i].velocity += impulse / objects[i].mass;
+                    objects[j].velocity -= impulse / objects[j].mass;
+                }
+            }
+        }
+    }
 }
 
 GLFWwindow *startGLFW(float width, float hight, const char *title)
