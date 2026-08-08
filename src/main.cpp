@@ -59,6 +59,11 @@ void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
+
+            // Normals (Normal = Position / Radius)
+            vertices.push_back(x / radius);
+            vertices.push_back(y / radius);
+            vertices.push_back(z / radius);
         }
     }
 
@@ -184,11 +189,15 @@ public:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
-        int stride = 3 * sizeof(float);
+        int stride = 6 * sizeof(float);
+
+        // Position
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
         glEnableVertexAttribArray(0);
 
-        glBindVertexArray(0);
+        // Normal
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
     }
 };
 
@@ -251,9 +260,8 @@ int main()
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
     std::vector<Object> objects = {
-        Object(glm::vec3(-0.4f, 0.0f,  0.0f), glm::vec3(0.0f, 0.4f,  0.2f), 0.25f, 50.0f),
-        Object(glm::vec3( 0.4f, 0.0f,  0.0f), glm::vec3(0.0f, -0.4f, -0.2f), 0.10f, 10.0f)
-    };
+        Object(glm::vec3(-0.4f, 0.0f, 0.0f), glm::vec3(0.0f, 0.4f, 0.2f), 0.25f, 50.0f),
+        Object(glm::vec3(0.4f, 0.0f, 0.0f), glm::vec3(0.0f, -0.4f, -0.2f), 0.10f, 10.0f)};
 
     Object::setupMesh();
 
