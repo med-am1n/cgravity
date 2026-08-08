@@ -250,6 +250,47 @@ std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects)
     return accelerations;
 }
 
+
+void resolveCollisions(std::vector<Object>& objects)
+{
+    float restitution = 0.8f;
+
+    for (size_t i = 0; i < objects.size(); ++i)
+    {
+        for (size_t j = i + 1; j < objects.size(); ++j)
+        {
+            glm::vec3 delta = objects[j].position - objects[i].position;
+            float distance = glm::length(delta);
+            float minDistance = objects[i].radius + objects[j].radius;
+
+            if (distance < minDistance)
+            {
+                // Prevent division by zero
+                glm::vec3 normal = (distance > 0.0001f) ? delta / distance : glm::vec3(1.0f, 0.0f, 0.0f);
+
+                float overlap = minDistance - distance;
+                float totalInverseMass = (1.0f / objects[i].mass) + (1.0f / objects[j].mass);
+                
+                glm::vec3 separationVector = normal * (overlap / totalInverseMass);
+                
+                objects[i].position -= separationVector * (1.0f / objects[i].mass);
+                objects[j].position += separationVector * (1.0f / objects[j].mass);
+
+                glm::vec3 relativeVelocity = objects[i].velocity - objects[j].velocity;
+                float velAlongNormal = glm::dot(relativeVelocity, normal);
+                if (velAlongNormal > 0.0f)
+                {
+                    float impulseScalar = -(1.0f + restitution) * velAlongNormal;
+                    impulseScalar /= totalInverseMass;
+
+                    glm::vec3 impulse = impulseScalar * normal;
+                    objects[i].velocity += impulse / objects[i].mass;
+                    objects[j].velocity -= impulse / objects[j].mass;
+                }
+            }
+        }
+    }
+}
 int main()
 {
 
@@ -301,8 +342,14 @@ int main()
         for (size_t i = 0; i < objects.size(); ++i)
         {
             objects[i].accelerate(acc[i], deltaTime * TIME_SCALE);
-            objects[i].Draw(ourShader);
         }
+        resolveCollisions(objects);
+        for (size_t i = 0; i < objects.size(); ++i)
+        {
+             objects[i].Draw(ourShader);
+        }
+
+       
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
         // Once rendering is complete, buffers are swapped (glfwSwapBuffers) to avoid flickering
