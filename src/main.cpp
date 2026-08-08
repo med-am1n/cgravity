@@ -13,6 +13,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 
@@ -29,7 +33,7 @@ float posY = 1.0f;
 float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
 const float G = 0.1f;
-const float TIME_SCALE = 0.2f;
+float TIME_SCALE = 0.2f;
 
 // Generates vertices and indices for a 3D UV Sphere
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
@@ -250,8 +254,7 @@ std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects)
     return accelerations;
 }
 
-
-void resolveCollisions(std::vector<Object>& objects)
+void resolveCollisions(std::vector<Object> &objects)
 {
     float restitution = 0.8f;
 
@@ -270,9 +273,9 @@ void resolveCollisions(std::vector<Object>& objects)
 
                 float overlap = minDistance - distance;
                 float totalInverseMass = (1.0f / objects[i].mass) + (1.0f / objects[j].mass);
-                
+
                 glm::vec3 separationVector = normal * (overlap / totalInverseMass);
-                
+
                 objects[i].position -= separationVector * (1.0f / objects[i].mass);
                 objects[j].position += separationVector * (1.0f / objects[j].mass);
 
@@ -299,6 +302,17 @@ int main()
     GLFWwindow *window = startGLFW(SCR_WIDTH, SCR_HEIGHT, "CGravity");
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // Setup Dear ImGui Context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    ImGui::StyleColorsDark();
+
+    // Setup Platform/Renderer Backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
 
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
@@ -329,6 +343,18 @@ int main()
         // the entire color buffer will be filled with the color asconfigured by glClearColor.
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // START IMGUI FRAME
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // DRAW IMGUI INTERFACES
+        ImGui::Begin("Simulation Controls");
+        ImGui::SliderFloat("Speed", &TIME_SCALE, 0.0f, 1.5f);
+        ImGui::Text("Application Performance: %.1f FPS", io.Framerate);
+        ImGui::End();
+
         ourShader.use();
         // create transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -346,10 +372,13 @@ int main()
         resolveCollisions(objects);
         for (size_t i = 0; i < objects.size(); ++i)
         {
-             objects[i].Draw(ourShader);
+            objects[i].Draw(ourShader);
         }
 
-       
+        // render command
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
         // Once rendering is complete, buffers are swapped (glfwSwapBuffers) to avoid flickering
