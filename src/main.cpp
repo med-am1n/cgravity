@@ -30,6 +30,60 @@ float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
 const float G = 0.1f;
 
+
+// Generates vertices and indices for a 3D UV Sphere
+void CreateSphere(float radius, unsigned int sectors, unsigned int stacks, 
+                  std::vector<float>& vertices, std::vector<unsigned int>& indices) 
+{
+    vertices.clear();
+    indices.clear();
+
+    float x, y, z, xy;                              // vertex position
+    float sectorStep = 2 * M_PI / sectors;
+    float stackStep = M_PI / stacks;
+    float sectorAngle, stackAngle;
+
+    for (unsigned int i = 0; i <= stacks; ++i) {
+        stackAngle = M_PI / 2 - i * stackStep;      // starting from pi/2 to -pi/2
+        xy = radius * cosf(stackAngle);             // r * cos(u)
+        z = radius * sinf(stackAngle);              // r * sin(u)
+
+        // add (sectors+1) vertices per stack
+        for (unsigned int j = 0; j <= sectors; ++j) {
+            sectorAngle = j * sectorStep;           // starting from 0 to 2pi
+
+            // vertex position (x, y, z)
+            x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
+            y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+        }
+    }
+
+    // generate CCW index list of triangles
+    unsigned int k1, k2;
+    for (unsigned int i = 0; i < stacks; ++i) {
+        k1 = i * (sectors + 1);     // beginning of current stack
+        k2 = k1 + sectors + 1;      // beginning of next stack
+
+        for (unsigned int j = 0; j < sectors; ++j, ++k1, ++k2) {
+            // 2 triangles per sector excluding first and last stacks
+            if (i != 0) {
+                indices.push_back(k1);
+                indices.push_back(k2);
+                indices.push_back(k1 + 1);
+            }
+
+            if (i != (stacks - 1)) {
+                indices.push_back(k1 + 1);
+                indices.push_back(k2);
+                indices.push_back(k2 + 1);
+            }
+        }
+    }
+}
+
 class Object
 {
 public:
