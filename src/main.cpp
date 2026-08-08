@@ -34,12 +34,12 @@ class Object
 public:
     inline static std::vector<float> vertices = CreateCircle(0.0f, 0.0f, 0.25f, 100);
     inline static unsigned int VBO, VAO;
-    std::vector<float> position;
-    std::vector<float> velocity;
+    glm::vec2 position;
+    glm::vec2 velocity;
     float radius;
     float lastTime = glfwGetTime();
 
-    Object(std::vector<float> position, std::vector<float> velocity, float radius)
+    Object(glm::vec2 position, glm::vec2 velocity, float radius)
     {
         this->position = position;
         this->velocity = velocity;
@@ -114,8 +114,8 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<Object> objects = {Object({0.0f, 0.75f, 0.0f}, {0.0f, 0.0f}, 0.25f),
-                                   Object({0.75f, 0.5f, 0.0f}, {0.0f, 0.0f}, 0.10f)};
+    std::vector<Object> objects = {Object(  glm::vec2 (0.0f, 0.5f),   glm::vec2(0.0f, 0.0f), 0.25f),
+                                   Object(glm::vec2 (0.75f, 0.5f), glm::vec2(0.0f, 0.0f), 0.10f)};
 
     Object::setupMesh();
 
