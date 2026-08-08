@@ -46,29 +46,29 @@ public:
         this->radius = radius;
     }
 
-    void accelerate(float x, float y, float deltaTime)
+    void accelerate(glm::vec2 acceleration, float deltaTime)
     {
 
-        this->velocity[0] += deltaTime * x;
-        this->velocity[1] += deltaTime * y;
+        velocity += acceleration * deltaTime;
 
-        this->position[0] += deltaTime * this->velocity[0];
-        this->position[1] += deltaTime * this->velocity[1];
+        position += velocity * deltaTime;
 
-        if (position[1] - radius < -1.0f)
+        float bounceEff = 0.8f;
+
+        if (position.y - radius < -1.0f)
         {
-            position[1] = -1.0f + radius;     // Prevent sinking below the ground
-            velocity[1] = -velocity[1] * 0.8; // Reverse direction (0.8 = lose 20% energy)
+            position.y = -1.0f + radius;     // Prevent sinking below the ground
+            velocity.y = -velocity.y * bounceEff; // Reverse direction (0.8 = lose 20% energy)
         }
-        if (position[0] - radius < -1.0f)
+        if (position.x - radius < -1.0f)
         {
-            position[0] = -1.0f + radius; // Snap back inside the left edge
-            velocity[0] = -velocity[0];
+            position.x = -1.0f + radius; // Snap back inside the left edge
+            velocity.x = -velocity.x;
         }
-        else if (position[0] + radius > 1.0f)
+        else if (position.x + radius > 1.0f)
         {
-            position[0] = 1.0f - radius; // Snap back inside the right edge
-            velocity[0] = -velocity[0];
+            position.x = 1.0f - radius; // Snap back inside the right edge
+            velocity.x = -velocity.x;
         }
     };
 
@@ -150,7 +150,7 @@ int main()
 
         for (auto i{objects.size()}; i-- > 0;)
         {
-            objects[i].accelerate(-3, -gravity, deltaTime);
+            objects[i].accelerate({-0.7, -gravity}, deltaTime);
             objects[i].Draw(ourShader);
         }
         // Double buffering:
