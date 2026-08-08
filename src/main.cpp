@@ -18,13 +18,13 @@
 #include "backends/imgui_impl_opengl3.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window, float deltaTime);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 4.0f));
 
 std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res);
 GLFWwindow *startGLFW(float width, float hight, const char *title);
@@ -35,6 +35,17 @@ const float gravity = 9.81f; // meters/sec²
 const float G = 0.1f;
 float TIME_SCALE = 0.2f;
 
+
+// Global variables to track mouse state metrics
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+bool cursorLocked = false; // Controls mode switching (true = Fly Mode, false = UI Mode)
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow *window);
 // Generates vertices and indices for a 3D UV Sphere
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
                   std::vector<float> &vertices, std::vector<unsigned int> &indices)
@@ -294,12 +305,17 @@ void resolveCollisions(std::vector<Object> &objects)
         }
     }
 }
+
 int main()
 {
 
     std::cout << "Hello, World!" << std::endl;
 
     GLFWwindow *window = startGLFW(SCR_WIDTH, SCR_HEIGHT, "CGravity");
+
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -318,8 +334,8 @@ int main()
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
     std::vector<Object> objects = {
-        Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.25f, 200.0f, glm::vec3(1.0f, 0.85f, 0.2f)),
-        Object(glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.25f, 0.1f), 0.10f, 15.0f, glm::vec3(0.0f, 0.9f, 0.8f)),
+        Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.10f, 200.0f, glm::vec3(1.0f, 0.85f, 0.2f)),
+        Object(glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.25f, 0.1f), 0.09f, 15.0f, glm::vec3(0.0f, 0.9f, 0.8f)),
         Object(glm::vec3(-0.6f, 0.2f, -0.1f), glm::vec3(0.1f, -0.22f, 0.0f), 0.12f, 25.0f, glm::vec3(0.85f, 0.25f, 0.2f))};
 
     Object::setupMesh();
@@ -335,7 +351,7 @@ int main()
         float deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         // input
-        processInput(window);
+        processInput(window, deltaTime);
 
         // rendering commands here
 
@@ -395,10 +411,20 @@ int main()
     return 0;
 }
 
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow *window, float deltaTime)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    // Keyboard controls for 3D exploration space
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
@@ -466,4 +492,33 @@ GLFWwindow *startGLFW(float width, float hight, const char *title)
     }
 
     return window;
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    // Let ImGui have priority on scrolling if hovering over UI windows
+    if (ImGui::GetIO().WantCaptureMouse) return;
+
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
