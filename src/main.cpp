@@ -49,8 +49,6 @@ void processInput(GLFWwindow *window);
 
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
                   std::vector<float> &vertices, std::vector<unsigned int> &indices);
-std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects);
-void resolveCollisions(std::vector<Object> &objects);
 
 class Object
 {
@@ -160,6 +158,9 @@ public:
         glEnableVertexAttribArray(1);
     }
 };
+
+std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects);
+void resolveCollisions(std::vector<Object> &objects);
 
 int main()
 {
