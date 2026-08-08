@@ -28,6 +28,7 @@ GLFWwindow *startGLFW(float width, float hight, const char *title);
 float posY = 1.0f;
 float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
+const float G = 0.1f;
 
 class Object
 {
@@ -37,13 +38,15 @@ public:
     glm::vec2 position;
     glm::vec2 velocity;
     float radius;
+    float mass;
     float lastTime = glfwGetTime();
 
-    Object(glm::vec2 position, glm::vec2 velocity, float radius)
+    Object(glm::vec2 position, glm::vec2 velocity, float radius, float mass)
     {
         this->position = position;
         this->velocity = velocity;
         this->radius = radius;
+        this->mass = mass;
     }
 
     void accelerate(glm::vec2 acceleration, float deltaTime)
@@ -57,18 +60,24 @@ public:
 
         if (position.y - radius < -1.0f)
         {
-            position.y = -1.0f + radius;     // Prevent sinking below the ground
-            velocity.y = -velocity.y * bounceEff; // Reverse direction (0.8 = lose 20% energy)
+            position.y = -1.0f + radius;
+            velocity.y = -velocity.y * bounceEff;
         }
+        else if (position.y + radius > 1.0f)
+        {
+            position.y = 1.0f - radius;
+            velocity.y = -velocity.y * bounceEff;
+        }
+
         if (position.x - radius < -1.0f)
         {
-            position.x = -1.0f + radius; // Snap back inside the left edge
-            velocity.x = -velocity.x;
+            position.x = -1.0f + radius;
+            velocity.x = -velocity.x * bounceEff;
         }
         else if (position.x + radius > 1.0f)
         {
-            position.x = 1.0f - radius; // Snap back inside the right edge
-            velocity.x = -velocity.x;
+            position.x = 1.0f - radius;
+            velocity.x = -velocity.x * bounceEff;
         }
     };
 
@@ -102,6 +111,52 @@ public:
     }
 };
 
+std::vector<glm::vec2> calculateGravity(std::vector<Object> &objects)
+{
+    // ============================================================================
+    // PHYSICS DECOUPLING (SIMULTANEOUS STATE UPDATE)
+    // ============================================================================
+    // We separate the calculation of gravity from the application of acceleration.
+    //
+    // 1. "calculateGravity" reads the current positions of all objects to find forces.
+    // 2. We store these net accelerations in a temporary vector array.
+    // 3. Only AFTER all forces are known do we loop through and update positions.
+    //
+    // This prevents a "mutation lag" bug: if we updated Object A's position instantly,
+    // Object B would calculate its gravity using Object A's *new* position instead
+    // of its *current* position for this frame, violating laws of physics symmetry.
+    // ============================================================================
+    std::vector<glm::vec2> accelerations(objects.size(), glm::vec2(0.0f));
+
+    for (size_t i = 0; i < objects.size(); ++i)
+    {
+        for (size_t j = i + 1; j < objects.size(); ++j)
+        {
+            glm::vec2 direction = objects[j].position - objects[i].position;
+            float distance = glm::length(direction);
+
+            // Avoid division by zero when objects overlap closely
+            float minDistance = objects[i].radius + objects[j].radius;
+            if (distance < minDistance)
+                distance = minDistance;
+
+            if (distance > 0.001f)
+            {
+                glm::vec2 normDir = direction / distance;
+                
+                // Newton's law: F = (G * m1 * m2) / r^2
+                float forceMagnitude = (G * objects[i].mass * objects[j].mass) / (distance * distance);
+
+                // Newton's Second Law: a = F / m
+                accelerations[i] += normDir * (forceMagnitude / objects[i].mass);
+                accelerations[j] -= normDir * (forceMagnitude / objects[j].mass);
+            }
+        }
+    }
+
+    return accelerations;
+}
+
 int main()
 {
 
@@ -114,8 +169,9 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<Object> objects = {Object(  glm::vec2 (0.0f, 0.5f),   glm::vec2(0.0f, 0.0f), 0.25f),
-                                   Object(glm::vec2 (0.75f, 0.5f), glm::vec2(0.0f, 0.0f), 0.10f)};
+    std::vector<Object> objects = {
+        Object(glm::vec2(-0.4f, 0.0f), glm::vec2(0.0f, 0.5f), 0.25f, 50.0f),
+        Object(glm::vec2(0.4f, 0.0f), glm::vec2(0.0f, -0.5f), 0.10f, 10.0f)};
 
     Object::setupMesh();
 
@@ -132,7 +188,6 @@ int main()
         // input
         processInput(window);
 
-
         // rendering commands here
 
         // Whenever we call glClear and clear the color buffer,
@@ -148,9 +203,10 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         ourShader.setMat4("view", view);
 
-        for (auto i{objects.size()}; i-- > 0;)
+        std::vector<glm::vec2> acc = calculateGravity(objects);
+        for (size_t i = 0; i < objects.size(); ++i)
         {
-            objects[i].accelerate({-0.7, -gravity}, deltaTime);
+            objects[i].accelerate(acc[i], deltaTime);
             objects[i].Draw(ourShader);
         }
         // Double buffering:
