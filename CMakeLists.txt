@@ -14,6 +14,7 @@ add_executable(prog
 target_include_directories(prog PRIVATE
     external/glad/include
     external/glm
+    external/imgui
     includes
     
 )
