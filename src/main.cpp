@@ -29,6 +29,7 @@ float posY = 1.0f;
 float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
 const float G = 0.1f;
+const float TIME_SCALE = 0.2f;
 
 // Generates vertices and indices for a 3D UV Sphere
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
@@ -261,11 +262,10 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-std::vector<Object> objects = {
-    Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.25f, 200.0f, glm::vec3(1.0f, 0.85f, 0.2f)),
-    Object(glm::vec3(0.4f, 0.0f, 0.0f), glm::vec3(0.0f, -0.6f, -0.3f), 0.10f, 15.0f, glm::vec3(0.0f, 0.9f, 0.8f)),
-    Object(glm::vec3(-0.5f, 0.4f, 0.1f), glm::vec3(0.4f, 0.3f, 0.2f), 0.12f, 25.0f, glm::vec3(0.85f, 0.25f, 0.2f))
-};
+    std::vector<Object> objects = {
+        Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.25f, 200.0f, glm::vec3(1.0f, 0.85f, 0.2f)),
+        Object(glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.25f, 0.1f), 0.10f, 15.0f, glm::vec3(0.0f, 0.9f, 0.8f)),
+        Object(glm::vec3(-0.6f, 0.2f, -0.1f), glm::vec3(0.1f, -0.22f, 0.0f), 0.12f, 25.0f, glm::vec3(0.85f, 0.25f, 0.2f))};
 
     Object::setupMesh();
 
@@ -300,7 +300,7 @@ std::vector<Object> objects = {
         std::vector<glm::vec3> acc = calculateGravity(objects);
         for (size_t i = 0; i < objects.size(); ++i)
         {
-            objects[i].accelerate(acc[i], deltaTime);
+            objects[i].accelerate(acc[i], deltaTime * TIME_SCALE);
             objects[i].Draw(ourShader);
         }
         // Double buffering:
