@@ -87,7 +87,7 @@ public:
         float scaleVal = radius / 0.25f;
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(position[0], position[1], 0));
-        model = glm::scale(model, glm::vec3(scaleVal, scaleVal, 0));
+        model = glm::scale(model, glm::vec3(scaleVal, scaleVal, 1.0f));
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size() / 3);
