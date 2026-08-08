@@ -170,8 +170,8 @@ int main()
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
     std::vector<Object> objects = {
-        Object(glm::vec2(-0.4f, 0.0f), glm::vec2(0.0f, 0.5f), 0.25f, 50.0f),
-        Object(glm::vec2(0.4f, 0.0f), glm::vec2(0.0f, -0.5f), 0.10f, 10.0f)};
+        Object(glm::vec2(-0.4f, 0.0f), glm::vec2(0.5f, 0.5f), 0.10f, 50.0f),
+        Object(glm::vec2(0.4f, 0.0f), glm::vec2(-0.0f, 0.5f), 0.10f, 10.0f)};
 
     Object::setupMesh();
 
