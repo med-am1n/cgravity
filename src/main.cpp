@@ -28,29 +28,67 @@ GLFWwindow *startGLFW(float width, float hight, const char *title);
 float posY = 1.0f;
 float velocity = 0.0f;
 const float gravity = 9.81f; // meters/sec²
-float lastTime = glfwGetTime();
 
 
 class Object
 {
 public:
+    inline static std::vector<float> vertices = CreateCircle(0.0f, 0.0f, 0.25f, 100);
+    inline static unsigned int VBO, VAO;
     std::vector<float> position;
-    std::vector<float> vertices;
-    float velocity;
-    Object(std::vector<float> position, std::vector<float> vertices, float velocity)
+    std::vector<float> velocity;
+    float radius = 0.25f;
+    float lastTime = glfwGetTime();
+    
+    Object(std::vector<float> position, std::vector<float> velocity)
         {
             this->position = position;
-            this->vertices = vertices;
             this->velocity = velocity;
         }
 
-    void Draw(Shader &ourShader)
+    void accelerate (float x, float y){
+        float currentTime = glfwGetTime();
+        float deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+
+        this->velocity[0]+= deltaTime*x;
+        this->velocity[1]+= deltaTime*y;
+
+        this->position[0]+= deltaTime*this->velocity[0];
+        this->position[1]+= deltaTime*this->velocity[1];
+
+        if (position[1] < -1.0f)
+        {
+            position[1] = -1.0f;               // Prevent sinking below the ground
+            velocity[1] = -velocity[1] * 0.8f; // Reverse direction (0.8 = lose 20% energy)
+        }
+        
+    };
+
+    void Draw(Shader &shader)
     {   
+        glBindVertexArray(VAO);
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(position[0], position[1], position[1]));
+        model = glm::translate(model, glm::vec3(position[0], position[1], 0));
         // model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-        ourShader.setMat4("model", model);
+        shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size() / 3);
+        glBindVertexArray(0);
+    }
+
+    static void setupMesh(){
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, Object::vertices.size() * sizeof(float), Object::vertices.data(), GL_STATIC_DRAW);
+
+        int stride = 3 * sizeof(float);
+        // position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+        glEnableVertexAttribArray(0);
     }
 };
 
@@ -67,23 +105,11 @@ int main()
     // build and compile the shader program
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
-    std::vector<float> vertices = CreateCircle(0.0f, 0.0f, 0.25f, 100);
+    std::vector<Object> objects = { Object({0.0f, 0.75f, 0.0f}, {0.0f, 0.0f}),
+                                    Object({0.75f, 0.5f, 0.0f}, {0.0f, 0.0f})
+                                };
 
-    Object circle1({0.0f, 0.5f, 0.0f}, vertices ,0.0f);
-
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    int stride = 3 * sizeof(float);
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
-    glEnableVertexAttribArray(0);
+    Object::setupMesh();
 
     glEnable(GL_DEPTH_TEST);
     // render loop
@@ -105,10 +131,12 @@ int main()
         ourShader.setMat4("projection", projection);
         // camera
         glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("view", view);
-        glBindVertexArray(VAO);        
+        ourShader.setMat4("view", view);       
         
-        circle1.Draw(ourShader);
+        for(auto i {objects.size()}; i-- > 0;){
+            objects[i].accelerate(0, -gravity);
+            objects[i].Draw(ourShader);
+        }
         // Double buffering:
         // Rendering is done in a hidden back buffer while the front buffer is displayed on screen.
         // Once rendering is complete, buffers are swapped (glfwSwapBuffers) to avoid flickering
