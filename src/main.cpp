@@ -352,6 +352,7 @@ int main()
         // DRAW IMGUI INTERFACES
         ImGui::Begin("Simulation Controls");
         ImGui::SliderFloat("Speed", &TIME_SCALE, 0.0f, 1.5f);
+        ImGui::SliderFloat("FOV (Zoom)", &camera.Zoom, 45.0f, 1.0f);
         ImGui::Text("Application Performance: %.1f FPS", io.Framerate);
         ImGui::End();
 
