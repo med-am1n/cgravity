@@ -46,11 +46,8 @@ public:
         this->radius = radius;
     }
 
-    void accelerate(float x, float y)
+    void accelerate(float x, float y, float deltaTime)
     {
-        float currentTime = glfwGetTime();
-        float deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
 
         this->velocity[0] += deltaTime * x;
         this->velocity[1] += deltaTime * y;
@@ -58,21 +55,20 @@ public:
         this->position[0] += deltaTime * this->velocity[0];
         this->position[1] += deltaTime * this->velocity[1];
 
-
         if (position[1] - radius < -1.0f)
         {
-            position[1] = -1.0f + radius;      // Prevent sinking below the ground
+            position[1] = -1.0f + radius;     // Prevent sinking below the ground
             velocity[1] = -velocity[1] * 0.8; // Reverse direction (0.8 = lose 20% energy)
         }
         if (position[0] - radius < -1.0f)
         {
-            position[0] = -1.0f + radius;      // Snap back inside the left edge
-            velocity[0] = -velocity[0]; 
+            position[0] = -1.0f + radius; // Snap back inside the left edge
+            velocity[0] = -velocity[0];
         }
         else if (position[0] + radius > 1.0f)
         {
-            position[0] = 1.0f - radius;       // Snap back inside the right edge
-            velocity[0] = -velocity[0]; 
+            position[0] = 1.0f - radius; // Snap back inside the right edge
+            velocity[0] = -velocity[0];
         }
     };
 
@@ -124,11 +120,18 @@ int main()
     Object::setupMesh();
 
     glEnable(GL_DEPTH_TEST);
+
+    float lastFrame = glfwGetTime();
+
     // render loop
     while (!glfwWindowShouldClose(window))
     {
+        float currentFrame = glfwGetTime();
+        float deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
         // input
         processInput(window);
+
 
         // rendering commands here
 
@@ -147,7 +150,7 @@ int main()
 
         for (auto i{objects.size()}; i-- > 0;)
         {
-            objects[i].accelerate(-3, -gravity);
+            objects[i].accelerate(-3, -gravity, deltaTime);
             objects[i].Draw(ourShader);
         }
         // Double buffering:
