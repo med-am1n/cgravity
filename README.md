@@ -10,10 +10,9 @@ i may forget, nah sure i will so :
 
 ## Usage
 clone add 3rd party libraries :
-   ``` git submodule add https://github.com/g-truc/glm external/glm ```
-   ``` git submodule add https://github.com/ocornut/imgui external/imgui ```
+   - ``` git submodule add https://github.com/g-truc/glm external/glm ```
+   - ``` git submodule add https://github.com/ocornut/imgui external/imgui ```
 
-ß
 - mkdir & cd to build and run: ``` cmake .. ```
     or from root directory: ``` cmake -S . -B build/ ```
 
