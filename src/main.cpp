@@ -79,7 +79,7 @@ public:
         this->color = color;
     }
 
-    void accelerate(glm::vec3 acceleration, float deltaTime, const Bounds& bounds)
+    void accelerate(glm::vec3 acceleration, float deltaTime, const Bounds &bounds)
     {
         velocity += acceleration * deltaTime;
         position += velocity * deltaTime;
@@ -350,9 +350,13 @@ int main()
     Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
     std::vector<Object> objects = {
-        Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.10f, 200.0f, glm::vec3(1.0f, 0.85f, 0.2f)),
-        Object(glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.25f, 0.1f), 0.09f, 15.0f, glm::vec3(0.0f, 0.9f, 0.8f)),
-        Object(glm::vec3(-0.6f, 0.2f, -0.1f), glm::vec3(0.1f, -0.22f, 0.0f), 0.12f, 25.0f, glm::vec3(0.85f, 0.25f, 0.2f))};
+        Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.15f, 200.0f, glm::vec3(1.0f, 0.75f, 0.1f)),
+        Object(glm::vec3(0.35f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 7.56f), 0.045f, 3.0f, glm::vec3(0.2f, 0.5f, 1.0f)),
+        Object(glm::vec3(0.60f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 5.77f), 0.06f, 8.0f, glm::vec3(0.9f, 0.25f, 0.1f)),
+        Object(glm::vec3(0.90f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 4.71f), 0.07f, 12.0f, glm::vec3(0.2f, 0.9f, 0.3f)),
+        Object(glm::vec3(-0.55f, 0.25f, 0.0f), glm::vec3(0.0f, 0.0f, -0.55f), 0.05f, 5.0f, glm::vec3(0.8f, 0.2f, 0.9f)),
+        Object(glm::vec3(0.0f, -0.35f, 0.65f), glm::vec3(0.55f, 0.0f, 0.0f), 0.055f, 6.0f, glm::vec3(1.0f, 0.4f, 0.1f)),
+        Object(glm::vec3(-1.20f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -0.38f), 0.08f, 15.0f, glm::vec3(0.1f, 0.7f, 0.9f))};
 
     Object::setupMesh();
 
