@@ -35,17 +35,19 @@ const float gravity = 9.81f; // meters/sec²
 const float G = 0.1f;
 float TIME_SCALE = 0.2f;
 
-
 // Global variables to track mouse state metrics
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 bool cursorLocked = false; // Controls mode switching (true = Fly Mode, false = UI Mode)
+bool isPaused = false;
+float PREVIOUS_TIME_SCALE = 0.2f;
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
 
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
                   std::vector<float> &vertices, std::vector<unsigned int> &indices);
@@ -172,6 +174,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -223,8 +226,34 @@ int main()
 
         // DRAW IMGUI INTERFACES
         ImGui::Begin("Simulation Controls");
-        ImGui::SliderFloat("Speed", &TIME_SCALE, 0.0f, 1.5f);
-        ImGui::SliderFloat("FOV (Zoom)", &camera.Zoom, 45.0f, 1.0f);
+
+        if (isPaused)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "STATUS: PAUSED");
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "STATUS: RUNNING");
+        }
+
+        // Capture slider modifications directly using boolean gates
+        bool speedChanged = ImGui::SliderFloat("Speed", &TIME_SCALE, 0.0f, 1.5f);
+        bool fovChanged = ImGui::SliderFloat("FOV (Zoom)", &camera.Zoom, 45.0f, 1.0f);
+       
+        if (speedChanged || fovChanged)
+        {
+            if (isPaused)
+            {
+                isPaused = false;
+
+                PREVIOUS_TIME_SCALE = TIME_SCALE;
+
+                // Keep cursor visible (UI Mode)
+                cursorLocked = false;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+        }
+
         ImGui::Text("Application Performance: %.1f FPS", io.Framerate);
         ImGui::End();
 
@@ -272,6 +301,8 @@ void processInput(GLFWwindow *window, float deltaTime)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    if (isPaused)
+        return;
     // Keyboard controls for 3D exploration space
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -326,7 +357,6 @@ std::vector<float> CreateCircle(float centerX, float centerY, float radius, int 
 
     return vertices;
 }
-
 
 // Generates vertices and indices for a 3D UV Sphere
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
@@ -391,7 +421,6 @@ void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
         }
     }
 }
-
 
 std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects)
 {
@@ -517,8 +546,10 @@ GLFWwindow *startGLFW(float width, float hight, const char *title)
     return window;
 }
 
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
 {
+    if (isPaused)
+        return;
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -538,10 +569,40 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
+    if (isPaused)
+        return;
     // Let ImGui have priority on scrolling if hovering over UI windows
-    if (ImGui::GetIO().WantCaptureMouse) return;
+    if (ImGui::GetIO().WantCaptureMouse)
+        return;
 
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+{
+    if (ImGui::GetIO().WantCaptureMouse)
+        return;
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        isPaused = !isPaused;
+
+        if (isPaused)
+        {
+            PREVIOUS_TIME_SCALE = TIME_SCALE;
+            TIME_SCALE = 0.0f;
+
+            cursorLocked = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        else
+        {
+            TIME_SCALE = PREVIOUS_TIME_SCALE;
+            cursorLocked = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            firstMouse = true; // Prevents camera camera snapping jumps
+        }
+    }
 }
