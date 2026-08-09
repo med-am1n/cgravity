@@ -43,6 +43,12 @@ bool cursorLocked = false; // Controls mode switching (true = Fly Mode, false = 
 bool isPaused = false;
 float PREVIOUS_TIME_SCALE = 0.2f;
 
+struct Bounds
+{
+    glm::vec3 min;
+    glm::vec3 max;
+};
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
@@ -73,7 +79,7 @@ public:
         this->color = color;
     }
 
-    void accelerate(glm::vec3 acceleration, float deltaTime)
+    void accelerate(glm::vec3 acceleration, float deltaTime, const Bounds& bounds)
     {
         velocity += acceleration * deltaTime;
         position += velocity * deltaTime;
@@ -81,38 +87,38 @@ public:
         float bounceEff = 0.8f;
 
         // X-axis bounds
-        if (position.x - radius < -1.0f)
+        if (position.x - radius < bounds.min.x)
         {
-            position.x = -1.0f + radius;
+            position.x = bounds.min.x + radius;
             velocity.x = -velocity.x * bounceEff;
         }
-        else if (position.x + radius > 1.0f)
+        else if (position.x + radius > bounds.max.x)
         {
-            position.x = 1.0f - radius;
+            position.x = bounds.max.x - radius;
             velocity.x = -velocity.x * bounceEff;
         }
 
         // Y-axis bounds
-        if (position.y - radius < -1.0f)
+        if (position.y - radius < bounds.min.y)
         {
-            position.y = -1.0f + radius;
+            position.y = bounds.min.y + radius;
             velocity.y = -velocity.y * bounceEff;
         }
-        else if (position.y + radius > 1.0f)
+        else if (position.y + radius > bounds.max.y)
         {
-            position.y = 1.0f - radius;
+            position.y = bounds.max.y - radius;
             velocity.y = -velocity.y * bounceEff;
         }
 
         // Z-axis bounds
-        if (position.z - radius < -1.0f)
+        if (position.z - radius < bounds.min.z)
         {
-            position.z = -1.0f + radius;
+            position.z = bounds.min.z + radius;
             velocity.z = -velocity.z * bounceEff;
         }
-        else if (position.z + radius > 1.0f)
+        else if (position.z + radius > bounds.max.z)
         {
-            position.z = 1.0f - radius;
+            position.z = bounds.max.z - radius;
             velocity.z = -velocity.z * bounceEff;
         }
     };
@@ -223,8 +229,8 @@ public:
     std::vector<unsigned int> indices;
     unsigned int VAO, VBO, EBO;
 
-    int width = 40;
-    int depth = 40;
+    int width = 300;
+    int depth = 300;
     float spacing = 0.05f;
 
     void setupMesh()
@@ -300,6 +306,19 @@ public:
         // Restore standard solid drawing configuration for the planets loop
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindVertexArray(0);
+    }
+
+    Bounds getBounds() const
+    {
+        return {
+            glm::vec3(
+                -(width * spacing) / 2.0f,
+                -1.0f,
+                -(depth * spacing) / 2.0f),
+            glm::vec3(
+                (width * spacing) / 2.0f,
+                1.0f,
+                (depth * spacing) / 2.0f)};
     }
 };
 int main()
@@ -408,17 +427,17 @@ int main()
         ourShader.setMat4("view", view);
 
         std::vector<glm::vec3> acc = calculateGravity(objects);
+        Bounds bounds = spaceFabric.getBounds();
         for (size_t i = 0; i < objects.size(); ++i)
         {
-            objects[i].accelerate(acc[i], deltaTime * TIME_SCALE);
+            objects[i].accelerate(acc[i], deltaTime * TIME_SCALE, bounds);
         }
         resolveCollisions(objects);
 
-
         spaceFabric.UpdateFabric(objects);
-        
+
         spaceFabric.Draw(ourShader);
-        
+
         for (size_t i = 0; i < objects.size(); ++i)
         {
             objects[i].Draw(ourShader);
