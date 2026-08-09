@@ -164,6 +164,144 @@ public:
 std::vector<glm::vec3> calculateGravity(const std::vector<Object> &objects);
 void resolveCollisions(std::vector<Object> &objects);
 
+// Generates a grid mesh forming a 3D Paraboloid well
+void CreateParaboloidGrid(int gridWidth, int gridDepth, float spacing,
+                          std::vector<float> &vertices, std::vector<unsigned int> &indices)
+{
+    vertices.clear();
+    indices.clear();
+
+    // Generate positions and structural normal vectors
+    for (int z = 0; z <= gridDepth; ++z)
+    {
+        for (int x = 0; x <= gridWidth; ++x)
+        {
+            // Center the grid coordinates around origin (0, 0, 0)
+            float posX = (x - gridWidth / 2.0f) * spacing;
+            float posZ = (z - gridDepth / 2.0f) * spacing;
+
+            // Base paraboloid equation: Y falls off relative to distance from center
+            float posY = -0.5f * ((posX * posX) + (posZ * posZ));
+
+            // Position Layout channels
+            vertices.push_back(posX);
+            vertices.push_back(posY);
+            vertices.push_back(posZ);
+
+            // Base temporary Normals (pointing upward along Y axis)
+            vertices.push_back(0.0f);
+            vertices.push_back(1.0f);
+            vertices.push_back(0.0f);
+        }
+    }
+
+    // Triangle indices maps
+    for (int z = 0; z < gridDepth; ++z)
+    {
+        for (int x = 0; x < gridWidth; ++x)
+        {
+            unsigned int row1 = z * (gridWidth + 1);
+            unsigned int row2 = (z + 1) * (gridWidth + 1);
+
+            // Triangle 1
+            indices.push_back(row1 + x);
+            indices.push_back(row2 + x);
+            indices.push_back(row1 + x + 1);
+
+            // Triangle 2
+            indices.push_back(row1 + x + 1);
+            indices.push_back(row2 + x);
+            indices.push_back(row2 + x + 1);
+        }
+    }
+}
+
+class ParaboloidSpace
+{
+public:
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+    unsigned int VAO, VBO, EBO;
+
+    int width = 40;
+    int depth = 40;
+    float spacing = 0.05f;
+
+    void setupMesh()
+    {
+        CreateParaboloidGrid(width, depth, spacing, vertices, indices);
+
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &EBO);
+
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        // Using GL_DYNAMIC_DRAW because we will stream updated coordinates every single frame
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+        int stride = 6 * sizeof(float);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(0);
+    }
+
+    // Warps the grid fabric dynamically relative to planet locations and masses
+    void UpdateFabric(const std::vector<Object> &planets)
+    {
+        int vertexCount = (width + 1) * (depth + 1);
+
+        for (int i = 0; i < vertexCount; ++i)
+        {
+            float x = vertices[i * 6 + 0];
+            float z = vertices[i * 6 + 2];
+
+            // center the grid baseline
+            float accumulatedDepth = 0.0f;
+
+            for (const auto &planet : planets)
+            {
+                float dx = x - planet.position.x;
+                float dz = z - planet.position.z;
+                float distSq = (dx * dx) + (dz * dz) + 0.01f;
+
+                // prevents the grid from stretching too far down now that it is higher up
+                accumulatedDepth -= (0.002f * planet.mass) / sqrt(distSq);
+            }
+
+            // Apply the newly calculated Y coordinate
+            vertices[i * 6 + 1] = accumulatedDepth;
+        }
+
+        // Stream the updated grid coordinates to your graphics card
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
+    }
+    void Draw(Shader &shader)
+    {
+        glBindVertexArray(VAO);
+        glm::mat4 model = glm::mat4(1.0f); // Fixed at origin space
+        shader.setMat4("model", model);
+
+        // Pass a constant grid color (Gridlines hue color)
+        shader.setVec3("objectColor", glm::vec3(0.15f, 0.45f, 0.35f));
+
+        // Render in Wireframe mode so you can see the paraboloid grid mesh deformation lines
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+
+        // Restore standard solid drawing configuration for the planets loop
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(0);
+    }
+};
 int main()
 {
 
@@ -198,6 +336,9 @@ int main()
         Object(glm::vec3(-0.6f, 0.2f, -0.1f), glm::vec3(0.1f, -0.22f, 0.0f), 0.12f, 25.0f, glm::vec3(0.85f, 0.25f, 0.2f))};
 
     Object::setupMesh();
+
+    ParaboloidSpace spaceFabric;
+    spaceFabric.setupMesh();
 
     glEnable(GL_DEPTH_TEST);
 
@@ -239,7 +380,7 @@ int main()
         // Capture slider modifications directly using boolean gates
         bool speedChanged = ImGui::SliderFloat("Speed", &TIME_SCALE, 0.0f, 1.5f);
         bool fovChanged = ImGui::SliderFloat("FOV (Zoom)", &camera.Zoom, 45.0f, 1.0f);
-       
+
         if (speedChanged || fovChanged)
         {
             if (isPaused)
@@ -272,6 +413,12 @@ int main()
             objects[i].accelerate(acc[i], deltaTime * TIME_SCALE);
         }
         resolveCollisions(objects);
+
+
+        spaceFabric.UpdateFabric(objects);
+        
+        spaceFabric.Draw(ourShader);
+        
         for (size_t i = 0; i < objects.size(); ++i)
         {
             objects[i].Draw(ourShader);
