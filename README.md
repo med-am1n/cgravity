@@ -1,7 +1,7 @@
 # Cgravity
     Gravity simulation  in C++ and OpenGL
 
-    ![demo](demo.png)
+    ![demo](./demo.png)
 
 ## future use refrence, 
 
