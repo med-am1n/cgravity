@@ -3,13 +3,13 @@ Gravity simulation  in C++ and OpenGL
 
 ![demo](./demo.png)
 
-## future use refrence, 
-
-i may forget, nah sure i will so :
-
+## Dependencies
+    - OpenGL APIs: gl:core=3.3
+    - glad 2.0.8
+    - C++17
 
 ## Usage
-clone add 3rd party libraries :
+clone/add 3rd party libraries :
    - ``` git submodule add https://github.com/g-truc/glm external/glm ```
    - ``` git submodule add https://github.com/ocornut/imgui external/imgui ```
 
@@ -26,13 +26,3 @@ clone add 3rd party libraries :
     - use mouse scroll to zoom in or out
     - use mouse left click to pause/resume the demo
 
-- for vscode to avoid some lint errors :
-
-    add includes/libraries/externals directories to the includePath in c_cpp_properties.json in .vscode dir:
-            "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/external/glad/include",
-                "${workspaceFolder}/includes",
-                "${workspaceFolder}/external/glm",
-                "/opt/homebrew/include"
-            ], 
