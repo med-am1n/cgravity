@@ -18,11 +18,15 @@
 #include "backends/imgui_impl_opengl3.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void window_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window, float deltaTime);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+int windowWidth = SCR_WIDTH;
+int windowHeight = SCR_HEIGHT;
+
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 4.0f));
 
@@ -36,8 +40,8 @@ const float G = 0.1f;
 float TIME_SCALE = 0.2f;
 
 // Global variables to track mouse state metrics
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
+float lastX = windowWidth / 2.0f;
+float lastY = windowHeight / 2.0f;
 bool firstMouse = true;
 bool cursorLocked = false; // Controls mode switching (true = Fly Mode, false = UI Mode)
 bool isPaused = false;
@@ -50,11 +54,11 @@ struct Bounds
 };
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void window_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
-
 void CreateSphere(float radius, unsigned int sectors, unsigned int stacks,
                   std::vector<float> &vertices, std::vector<unsigned int> &indices);
 
@@ -333,8 +337,8 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
+    //glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); 
+    glfwSetWindowSizeCallback(window, window_size_callback);
     // Setup Dear ImGui Context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -423,7 +427,7 @@ int main()
 
         ourShader.use();
         // create transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / (float)windowHeight, 0.1f, 100.0f);
         // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
         ourShader.setMat4("projection", projection);
         // camera
@@ -504,6 +508,12 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+}
+
+void window_size_callback(GLFWwindow *window, int width, int height)
+{
+    windowWidth = width;
+    windowHeight = height;
 }
 
 std::vector<float> CreateCircle(float centerX, float centerY, float radius, int res)
@@ -705,7 +715,6 @@ GLFWwindow *startGLFW(float width, float hight, const char *title)
     }
 
     glfwMakeContextCurrent(window);
-
     // initialize GLAD
     if (!gladLoadGL(glfwGetProcAddress))
     {
