@@ -8,21 +8,34 @@ Gravity simulation  in C++ and OpenGL
     - glad 2.0.8
     - C++17
 
+
+## Getting Started
+
+### 1. Clone the Repository
+Clone the main repository to your local machine:
+```bash
+git clone <repository-url>
+cd <repository-folder>
+```
+
+### 2. Initialize Submodules
+The project uses Git submodules, you must initialize and clone them after cloning the main repository:
+```bash
+git submodule update --init --recursive
+```
+*(Alternatively, you can clone everything at once using `git clone --recurse-submodules <repository-url>`)*
+
+### 3. Build and Run
+Configure the project with CMake, compile, and run the executable:
+```bash
+cmake -S . -B build/
+cd build
+make && ./prog
+```
 ## Usage
-clone/add 3rd party libraries :
-   - ``` git submodule add https://github.com/g-truc/glm external/glm ```
-   - ``` git submodule add https://github.com/ocornut/imgui external/imgui ```
-
-- mkdir & cd to build and run: ``` cmake .. ```
-    or from root directory: ``` cmake -S . -B build/ ```
-
-
-- from root directory run : ``` make && ./prog ```
-
-- then :
-    - use up/down arraw key to change the speed
-    - use w/a/s/d keys to move within the space
-    - use mouse movments to change camera view
-    - use mouse scroll to zoom in or out
-    - use mouse left click to pause/resume the demo
+ - use up/down arraw key to change the speed
+ - use w/a/s/d keys to move within the space
+ - use mouse movments to change camera view
+ - use mouse scroll to zoom in or out
+ - use mouse left click to pause/resume the demo
 
