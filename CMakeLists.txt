@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(cgravity)
 
+# for nvim do: ln -s build/compile_commands.json compile_commands.json after build!!
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+cmake_minimum_required(VERSION 3.10)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 cmake_minimum_required(VERSION 3.10)
 
