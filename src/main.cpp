@@ -350,9 +350,8 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    // build and compile the shader program
-    Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
-
+    // use the constructed absolute path via logl_root!!
+    Shader shader = Shader((std::string(logl_root) + "/src/shaders/shader.vs").c_str(), (std::string(logl_root) + "/src/shaders/shader.fs").c_str());
     std::vector<Object> objects = {
         Object(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.15f, 200.0f, glm::vec3(1.0f, 0.75f, 0.1f)),
         Object(glm::vec3(0.35f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 7.56f), 0.045f, 3.0f, glm::vec3(0.2f, 0.5f, 1.0f)),
@@ -425,14 +424,14 @@ int main()
         ImGui::Text("Application Performance: %.1f FPS", io.Framerate);
         ImGui::End();
 
-        ourShader.use();
+        shader.use();
         // create transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)windowWidth / (float)windowHeight, 0.1f, 100.0f);
         // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-        ourShader.setMat4("projection", projection);
+        shader.setMat4("projection", projection);
         // camera
         glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("view", view);
+        shader.setMat4("view", view);
 
         std::vector<glm::vec3> acc = calculateGravity(objects);
         Bounds bounds = spaceFabric.getBounds();
@@ -444,11 +443,11 @@ int main()
 
         spaceFabric.UpdateFabric(objects);
 
-        spaceFabric.Draw(ourShader);
+        spaceFabric.Draw(shader);
 
         for (size_t i = 0; i < objects.size(); ++i)
         {
-            objects[i].Draw(ourShader);
+            objects[i].Draw(shader);
         }
 
         // render command
