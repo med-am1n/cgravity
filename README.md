@@ -5,7 +5,7 @@ Gravity simulation  in C++ and OpenGL
 
 ## Dependencies
     - OpenGL APIs: gl:core=3.3
-    - glad 2.0.8
+    - glad 3.3
     - C++17
 
 
